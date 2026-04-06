@@ -20,10 +20,14 @@ _API_URL = os.environ.get("RESERVATION_API_URL", "http://localhost:8520")
 API_BASE = f"{_API_URL}/api/v1"
 AUTH_API = f"{_API_URL}/api/v1/auth"
 
+# 知識庫路徑（本地專用，雲端不使用）
 CHUNK_PATH = {
     "default": "/Users/yu-tsehsiao/.openclaw/workspace/data/chunks.csv",
     "518dc260": "/Users/yu-tsehsiao/.openclaw/workspace-cust_002/data/chunks.csv"
 }
+
+# 檢查是否為 Streamlit Cloud 環境（只能寫 /mount/src）
+IS_CLOUD = os.path.exists("/mount/src")
 
 st.set_page_config(page_title="預約系統管理後台", page_icon="📅", layout="wide")
 
@@ -247,6 +251,11 @@ tab = {tabs_list[i]: all_tabs[i] for i in range(len(tabs_list))}
 # ==============================================
 with tab[TAB_KB]:
     st.header("📚 知識庫管理")
+
+    # 雲端環境不支援本地知識庫
+    if IS_CLOUD:
+        st.info("☁️ 雲端環境不支援知識庫管理，請使用本地版本")
+        st.stop()
 
     chunk_file = CHUNK_PATH.get(selected_business, CHUNK_PATH["default"])
     os.makedirs(os.path.dirname(chunk_file), exist_ok=True)
