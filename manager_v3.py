@@ -294,48 +294,48 @@ with tab[TAB_KB]:
                         st.caption(f"ID: {row.get('chunk_id', '')}")
                         st.divider()
 
-    # 上傳新知識
-    st.subheader("➕ 上傳知識庫")
-    st.caption("⚠️ 檔案限制 5MB 內,新檔案會覆蓋舊檔案")
+        # 上傳新知識
+        st.subheader("➕ 上傳知識庫")
+        st.caption("⚠️ 檔案限制 5MB 內,新檔案會覆蓋舊檔案")
 
-    # 檢查現有知識庫狀態
-    if os.path.exists(chunk_file):
-        df_chunks = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
-        df_chunks = df_chunks[df_chunks["business_id"] == selected_business]
-        if not df_chunks.empty:
-            # 取得第一筆記錄的 tags 作為來源檔案名稱
-            source_file = df_chunks.iloc[0].get('tags', '未知')
-            st.info(f"📁 目前知識庫:{source_file}({len(df_chunks)} 筆記錄)")
+        # 檢查現有知識庫狀態
+        if os.path.exists(chunk_file):
+            df_chunks = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
+            df_chunks = df_chunks[df_chunks["business_id"] == selected_business]
+            if not df_chunks.empty:
+                # 取得第一筆記錄的 tags 作為來源檔案名稱
+                source_file = df_chunks.iloc[0].get('tags', '未知')
+                st.info(f"📁 目前知識庫:{source_file}({len(df_chunks)} 筆記錄)")
 
-    with st.form("upload_form", clear_on_submit=True):
-        uploaded_file = st.file_uploader("選擇檔案", type=["txt", "md", "csv"])
-        submitted = st.form_submit_button("上傳覆蓋", type="primary")
+        with st.form("upload_form", clear_on_submit=True):
+            uploaded_file = st.file_uploader("選擇檔案", type=["txt", "md", "csv"])
+            submitted = st.form_submit_button("上傳覆蓋", type="primary")
 
-        if submitted and uploaded_file:
-            # 檢查檔案大小
-            file_size = uploaded_file.size
-            if file_size > 5 * 1024 * 1024:
-                st.error("❌ 檔案超過 5MB 限制!")
-            else:
-                content = uploaded_file.read().decode('utf-8', errors='ignore').strip()
-                if len(content) > 20:
-                    # 刪除舊檔案的 chunks
-                    if os.path.exists(chunk_file):
-                        df_all = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
-                        df_all = df_all[df_all["business_id"] != selected_business]
-                        df_all.to_csv(chunk_file, header=False, index=False)
-
-                    # 寫入新 chunks(直接寫 content,不切割)
-                    file_name = uploaded_file.name
-                    chunk_id = uuid.uuid4().hex[:8]
-                    with open(chunk_file, "a", encoding="utf-8") as f:
-                        # 儲存:business_id, chunk_id, content, source_filename
-                        f.write(f"{selected_business},{chunk_id},{content[:5000]},{file_name}\n")
-
-                    st.success(f"✅ 已上傳:{file_name}({file_size} bytes)")
-                    st.rerun()
+            if submitted and uploaded_file:
+                # 檢查檔案大小
+                file_size = uploaded_file.size
+                if file_size > 5 * 1024 * 1024:
+                    st.error("❌ 檔案超過 5MB 限制!")
                 else:
-                    st.error("內容太短(至少20字)")
+                    content = uploaded_file.read().decode('utf-8', errors='ignore').strip()
+                    if len(content) > 20:
+                        # 刪除舊檔案的 chunks
+                        if os.path.exists(chunk_file):
+                            df_all = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
+                            df_all = df_all[df_all["business_id"] != selected_business]
+                            df_all.to_csv(chunk_file, header=False, index=False)
+
+                        # 寫入新 chunks(直接寫 content,不切割)
+                        file_name = uploaded_file.name
+                        chunk_id = uuid.uuid4().hex[:8]
+                        with open(chunk_file, "a", encoding="utf-8") as f:
+                            # 儲存:business_id, chunk_id, content, source_filename
+                            f.write(f"{selected_business},{chunk_id},{content[:5000]},{file_name}\n")
+
+                        st.success(f"✅ 已上傳:{file_name}({file_size} bytes)")
+                        st.rerun()
+                    else:
+                        st.error("內容太短(至少20字)")
 
 # ==============================================
 # Tab: 預約總表
