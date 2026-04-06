@@ -255,45 +255,44 @@ with tab[TAB_KB]:
     # 雲端環境不支援本地知識庫
     if IS_CLOUD:
         st.info("☁️ 雲端環境不支援知識庫管理，請使用本地版本")
-        st.stop()
-
-    chunk_file = CHUNK_PATH.get(selected_business, CHUNK_PATH["default"])
-    os.makedirs(os.path.dirname(chunk_file), exist_ok=True)
-
-    # 讀取知識庫
-    df_chunks = pd.DataFrame()
-    if os.path.exists(chunk_file):
-        df_all = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
-        df_chunks = df_all[df_all["business_id"] == selected_business]
-
-    total_chars = df_chunks["content"].str.len().sum() if not df_chunks.empty else 0
-    col1, col2 = st.columns(2)
-    col1.metric("📄 知識庫", "已上傳" if not df_chunks.empty else "空白")
-    col2.metric("📊 總字數", f"{total_chars:,}")
-
-    st.markdown("---")
-
-    # 下載按鈕
-    if not df_chunks.empty:
-        csv_data = df_chunks.to_csv(index=False)
-        st.download_button(
-            label="📥 下載 CSV",
-            data=csv_data,
-            file_name=f"knowledge_{selected_business}.csv",
-            mime="text/csv"
-        )
     else:
-        st.info("尚無知識庫資料")
+        chunk_file = CHUNK_PATH.get(selected_business, CHUNK_PATH["default"])
+        os.makedirs(os.path.dirname(chunk_file), exist_ok=True)
 
-    # 顯示現有知識
-    if not df_chunks.empty:
-        with st.expander("📋 展開查看知識內容"):
-            for idx, row in df_chunks.iterrows():
-                with st.container():
-                    st.markdown(f"**📄 {row.get('tags', '未知檔案')}**")
-                    st.text(row.get('content', '')[:500] + "..." if len(str(row.get('content', ''))) > 500 else row.get('content', ''))
-                    st.caption(f"ID: {row.get('chunk_id', '')}")
-                    st.divider()
+        # 讀取知識庫
+        df_chunks = pd.DataFrame()
+        if os.path.exists(chunk_file):
+            df_all = pd.read_csv(chunk_file, header=None, names=["business_id", "chunk_id", "content", "tags"])
+            df_chunks = df_all[df_all["business_id"] == selected_business]
+
+        total_chars = df_chunks["content"].str.len().sum() if not df_chunks.empty else 0
+        col1, col2 = st.columns(2)
+        col1.metric("📄 知識庫", "已上傳" if not df_chunks.empty else "空白")
+        col2.metric("📊 總字數", f"{total_chars:,}")
+
+        st.markdown("---")
+
+        # 下載按鈕
+        if not df_chunks.empty:
+            csv_data = df_chunks.to_csv(index=False)
+            st.download_button(
+                label="📥 下載 CSV",
+                data=csv_data,
+                file_name=f"knowledge_{selected_business}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("尚無知識庫資料")
+
+        # 顯示現有知識
+        if not df_chunks.empty:
+            with st.expander("📋 展開查看知識內容"):
+                for idx, row in df_chunks.iterrows():
+                    with st.container():
+                        st.markdown(f"**📄 {row.get('tags', '未知檔案')}**")
+                        st.text(row.get('content', '')[:500] + "..." if len(str(row.get('content', ''))) > 500 else row.get('content', ''))
+                        st.caption(f"ID: {row.get('chunk_id', '')}")
+                        st.divider()
 
     # 上傳新知識
     st.subheader("➕ 上傳知識庫")
