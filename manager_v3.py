@@ -737,17 +737,7 @@ if services == "full" and TAB_SLOTS in tab:
                         date_str = dd.strftime("%Y-%m-%d")
                         
                         with cols[i+1]:
-                            # 直接從資料庫讀取覆寫值
-                            conn = sqlite3.connect(str(DB_PATH))
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                                SELECT max_bookings FROM slot_overrides 
-                                WHERE business_id=? AND date=? AND slot_id=?
-                            """, (selected_business, date_str, sid))
-                            row = cursor.fetchone()
-                            current_max = row[0] if row else default_max
-                            
-                            # 取得已預約數量
+                            # 雲端環境不支援本地資料庫讀取，使用 API 取得預約數量
                             bookings_data = api_get(
                                 "bookings",
                                 {
@@ -760,7 +750,20 @@ if services == "full" and TAB_SLOTS in tab:
                             current_bookings = 0
                             if bookings_data.get("success"):
                                 current_bookings = len([b for b in bookings_data.get("data", []) if b.get("status") != "cancelled"])
-                            conn.close()
+                            
+                            # 雲端顯示預設容量，本地才能讀取覆寫值
+                            if IS_CLOUD:
+                                current_max = default_max
+                            else:
+                                conn = sqlite3.connect(str(DB_PATH))
+                                cursor = conn.cursor()
+                                cursor.execute("""
+                                    SELECT max_bookings FROM slot_overrides 
+                                    WHERE business_id=? AND date=? AND slot_id=?
+                                """, (selected_business, date_str, sid))
+                                row = cursor.fetchone()
+                                current_max = row[0] if row else default_max
+                                conn.close()
                             
                             # 顯示狀態
                             changed = current_max != default_max
@@ -769,18 +772,21 @@ if services == "full" and TAB_SLOTS in tab:
                             else:
                                 st.write(f"🔵 {current_max}")
                             
-                            # 增減按鈕
-                            col_up, col_dn = st.columns(2)
-                            with col_up:
-                                if st.button("▲", key=f"up_{sid}_{date_str}", help="增加容量", use_container_width=True):
-                                    if current_max < 10:
-                                        db_set_slot_override(selected_business, date_str, sid, current_max + 1)
-                                        st.rerun()
-                            with col_dn:
-                                if st.button("▼", key=f"dn_{sid}_{date_str}", help="減少容量", use_container_width=True):
-                                    if current_max > 0:
-                                        db_set_slot_override(selected_business, date_str, sid, current_max - 1)
-                                        st.rerun()
+                            # 增減按鈕（本地才能用，雲端不支援）
+                            if not IS_CLOUD:
+                                col_up, col_dn = st.columns(2)
+                                with col_up:
+                                    if st.button("▲", key=f"up_{sid}_{date_str}", help="增加容量", use_container_width=True):
+                                        if current_max < 10:
+                                            db_set_slot_override(selected_business, date_str, sid, current_max + 1)
+                                            st.rerun()
+                                with col_dn:
+                                    if st.button("▼", key=f"dn_{sid}_{date_str}", help="減少容量", use_container_width=True):
+                                        if current_max > 0:
+                                            db_set_slot_override(selected_business, date_str, sid, current_max - 1)
+                                            st.rerun()
+                            else:
+                                st.caption("☁️ 容量調整請用本地版")
 
         elif len(date_list) > 35:
             st.warning("日期範圍請選擇 35 天以內")
